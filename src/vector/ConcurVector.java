@@ -80,8 +80,8 @@ public class ConcurVector {
 	 * @param v, a vector from which values are to be copied.
 	 * @precondition dimension() == v.dimension(). */
 	public synchronized void assign(ConcurVector v) {
-		for (int i = 0; i < dimension(); ++i)
-			set(i, v.get(i));
+		for(int i = 0; i < this.maxThreads; i++)
+			new WorkerAssign(this, this.cantDeElementosAAnalizar(), v).start();
 	}
 	
 	
