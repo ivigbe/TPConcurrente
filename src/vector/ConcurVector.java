@@ -1,5 +1,6 @@
 package vector;
 
+import java.util.ArrayList;
 
 /** This class represents a fixed width vector of floating point numbers. */
 public class ConcurVector {
@@ -10,7 +11,7 @@ public class ConcurVector {
 	private int maxThreads;
 	private int load;
 	
-	private int elementToAnalize;
+	private int positionToAnalize;
 	
 	
 	/** Constructor for a ConcurVector.
@@ -24,7 +25,7 @@ public class ConcurVector {
 		this.elements = new double[size];
 		this.maxThreads = maxThreads;
 		this.load = load;
-		this.elementToAnalize = 0;
+		this.positionToAnalize = 0;
 	}
 	
 	public int cantDeElementosAAnalizar(){
@@ -39,10 +40,10 @@ public class ConcurVector {
 		return this.maxThreads;
 	}
 	
-	public synchronized int getElementToAnalize() {
-		int elem = this.elementToAnalize;
-		this.elementToAnalize++;
-		return elem;
+	public synchronized int getPositionToAnalize() {
+		int pos = this.positionToAnalize;
+		this.positionToAnalize++;
+		return pos;
 	}
 	
 	/** Returns the dimension of this vector, that is, its width. */
@@ -91,9 +92,8 @@ public class ConcurVector {
 	 * @param v, a vector from which values are to be copied.
 	 * @precondition dimension() == mask.dimension() && dimension() == v.dimension(). */
 	public synchronized void assign(ConcurVector mask, ConcurVector v) {
-		for (int i = 0; i < dimension(); ++i)
-			if (mask.get(i) >= 0)
-				set(i, v.get(i));
+		for(int i = 0; i < this.maxThreads; i++)
+			new WorkerAssignMask(this, this.cantDeElementosAAnalizar(), v, mask).start();
 	}
 	
 	
@@ -107,52 +107,58 @@ public class ConcurVector {
 	/** Adds the elements of this vector with the values of another (element-wise).
 	 * @param v, a vector from which to get the second operands.
 	 * @precondition dimension() == v.dimension(). */
-	public void add(ConcurVector v) {
-		for (int i = 0; i < dimension(); ++i)
-			set(i, get(i) + v.get(i));
+	public synchronized void add(ConcurVector v) {
+		for(int i = 0; i < this.maxThreads; i++)
+			new WorkerAdd(this, this.cantDeElementosAAnalizar(), v).start();
 	}
 	
 	
 	/** Subtracts from the elements of this vector the values of another (element-wise).
 	 * @param v, a vector from which to get the second operands.
 	 * @precondition dimension() == v.dimension(). */
-	public void sub(ConcurVector v) {
-		for (int i = 0; i < dimension(); ++i)
-			set(i, get(i) - v.get(i));
+	public synchronized void sub(ConcurVector v) {
+		for(int i = 0; i < this.maxThreads; i++)
+			new WorkerSub(this, this.cantDeElementosAAnalizar(), v).start();
 	}
 	
 	
 	/** Multiplies the elements of this vector by the values of another (element-wise).
 	 * @param v, a vector from which to get the second operands.
 	 * @precondition dimension() == v.dimension(). */
-	public void mul(ConcurVector v) {
-		for (int i = 0; i < dimension(); ++i)
-			set(i, get(i) * v.get(i));
+	public synchronized void mul(ConcurVector v) {
+		for(int i = 0; i < this.maxThreads; i++)
+			new WorkerMul(this, this.cantDeElementosAAnalizar(), v).start();
 	}
 	
 	
 	/** Divides the elements of this vector by the values of another (element-wise).
 	 * @param v, a vector from which to get the second operands.
 	 * @precondition dimension() == v.dimension(). */
-	public void div(ConcurVector v) {
-		for (int i = 0; i < dimension(); ++i)
-			set(i, get(i) / v.get(i));
+	public synchronized void div(ConcurVector v) {
+		for(int i = 0; i < this.maxThreads; i++)
+			new WorkerMul(this, this.cantDeElementosAAnalizar(), v).start();
 	}
 	
+	public ArrayList<Double> listaSum = new ArrayList<Double>();
 	
 	/** Returns the sum of all the elements in this vector. */
-	public double sum() {
-		double result = 0;
-		for (int i = 0; i < dimension(); ++i)
-			result += get(i);
-		return result;
+	public synchronized double sum() {
+		ConcurVector vectorResultadoSum = this;
+		while (! (vectorResultadoSum.dimension() == 1)){
+			for(int i = 0; i < this.maxThreads; i++)
+				new WorkerSum(this, this.cantDeElementosAAnalizar()).start();
+			while(! seProcesoELUltimoElemento()){
+				this.wait();
+			}
+		}
+		return vectorResultadoSum.get(0);
 	}
 	
 	
 	/** Returns the dot product between two vectors (this and v).
 	 * @param v, second operand of the dot product operation.
 	 * @precondition dimension() == v.dimension(). */
-	public double prod(ConcurVector v) {
+	public synchronized double prod(ConcurVector v) {
 		ConcurVector aux = new ConcurVector(dimension());
 		aux.assign(this);
 		aux.mul(v);
@@ -161,7 +167,7 @@ public class ConcurVector {
 	
 	
 	/** Returns the norm of this vector. */
-	public double norm() {
+	public synchronized double norm() {
 		ConcurVector aux = new ConcurVector(dimension());
 		aux.assign(this);
 		aux.mul(this);
@@ -170,7 +176,7 @@ public class ConcurVector {
 	
 	
 	/** Normalizes this vector, converting it into a unit vector. */
-	public void normalize() {
+	public synchronized void normalize() {
 		ConcurVector aux = new ConcurVector(dimension());
 		aux.set(this.norm());
 		div(aux);
@@ -180,17 +186,17 @@ public class ConcurVector {
 	/** Applies the max operation element-wise.
 	 * @param v, a vector with the second operands for max.
 	 * @precondition dimension == v.dimension(). */
-	public void max(ConcurVector v) {
-		for (int i = 0; i < dimension(); ++i)
-			set(i, Math.max(get(i), v.get(i)));
+	public synchronized void max(ConcurVector v) {
+		for(int i = 0; i < this.maxThreads; i++)
+			new WorkerMax(this, this.cantDeElementosAAnalizar(), v).start();
 	}
 	
 	
 	/** Applies the min operation element-wise.
 	 * @param v, a vector with the second operands for min.
 	 * @precondition dimension == v.dimension(). */
-	public void min(ConcurVector v) {
-		for (int i = 0; i < dimension(); ++i)
-			set(i, Math.min(get(i), v.get(i)));
+	public synchronized void min(ConcurVector v) {
+		for(int i = 0; i < this.maxThreads; i++)
+			new WorkerMin(this, this.cantDeElementosAAnalizar(), v).start();
 	}
 }

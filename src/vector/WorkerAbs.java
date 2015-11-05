@@ -8,10 +8,10 @@ public class WorkerAbs extends Worker{
 
 	public void work(){
 		for(int cant = 0; cant < this.cantToAnalize; cant++){
-			double element = this.assignedVector.get(this.elementToAnalize);
-			double result = Math.abs(element);
-			this.assignedVector.set(this.elementToAnalize, result);
-			this.elementToAnalize = this.assignedVector.getElementToAnalize();
+			int positionToAnalize = this.assignedVector.getPositionToAnalize();
+			double value = this.assignedVector.get(positionToAnalize);
+			double result = Math.abs(value);
+			this.assignedVector.set(positionToAnalize, result);
 		}
 	}
 }
