@@ -142,8 +142,8 @@ public class ConcurVector {
 	public ArrayList<Double> listaSum = new ArrayList<Double>();
 	
 	/** Returns the sum of all the elements in this vector. */
-	public synchronized double sum() {
-		ConcurVector vectorResultadoSum = this;
+	public double sum() {
+		/*ConcurVector vectorResultadoSum = this;
 		while (! (vectorResultadoSum.dimension() == 1)){
 			for(int i = 0; i < this.maxThreads; i++)
 				new WorkerSum(this, this.cantDeElementosAAnalizar()).start();
@@ -151,7 +151,15 @@ public class ConcurVector {
 				this.wait();
 			}
 		}
-		return vectorResultadoSum.get(0);
+		return vectorResultadoSum.get(0);*/
+		
+		ConcurVector vectorResultado = this;
+		
+		while(! (vectorResultado.dimension() == 1)){
+			
+				new WorkerSum(this);
+		}
+		return vectorResultado.get(positionToAnalize);
 	}
 	
 	
