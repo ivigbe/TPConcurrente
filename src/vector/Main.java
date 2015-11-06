@@ -4,23 +4,23 @@ public class Main {
 
 	public static void main(String[] args) {
 		
-		ConcurVector vector = new ConcurVector(10, 5, 1);
-		ConcurVector vector2 = new ConcurVector(11, 5, 1);
+		ConcurVector vector = new ConcurVector(10, 5, 0);		
+		ConcurVector vector2 = new ConcurVector(10, 5, 0);
 		
+		//vector = (-1,-2,-3,-4,-5,-6,-7,-8,-9,-10)
 		for(int i=0; i < 10; i++){
-			vector.set(i, -i);
+			vector.set(i, (-i-1));
 		}
 		
-		for(int i=0; i < 11; i++)
-			vector2.set(i, i);
+		//vector = (1,2,3,4,5,6,7,8,9,10)
+		for(int i=0; i < 10; i++)
+			vector2.set(i, (i+1));
 		
-		//System.out.println(vector.sum());
-		vector.assign(vector2);
+		//vector.assign(vector2);
+		vector.abs();
 		
 		for(int i=0; i < 10; i++){
-			
 			System.out.println(vector.get(i));
 		}
 	}
-
 }
